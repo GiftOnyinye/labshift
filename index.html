@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabShift — Computer Lab &amp; STEM Club Tool</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="inner">
+    <div>
+      <h1>LabShift</h1>
+      <div class="tag">8 stations. 40 students. Zero wasted minutes.</div>
+    </div>
+  </div>
+  <div class="inner" style="margin-top:0;">
+    <nav class="tabs" aria-label="Main sections">
+      <button type="button" data-tab="book" class="active" aria-controls="panel-book" id="tab-book">Book a Slot</button>
+      <button type="button" data-tab="learn" aria-controls="panel-learn" id="tab-learn">Learn While You Wait</button>
+      <button type="button" data-tab="club" aria-controls="panel-club" id="tab-club">STEM Club Log</button>
+      <button type="button" data-tab="overview" id="overviewTabBtn" aria-controls="panel-overview" style="display:none;">Overview (Teacher demo)</button>
+    </nav>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- BOOK -->
+  <section class="panel active" id="panel-book">
+    <div class="card">
+      <div class="notice">
+        <strong>Demo role selector.</strong> A production version would require authenticated teacher accounts.
+      </div>
+      <div class="name-bar">
+        <div class="field">
+          <label for="studentName">Your name</label>
+          <input type="text" id="studentName" placeholder="e.g. Amara O." autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="roleSelect">Role (demo only)</label>
+          <select id="roleSelect">
+            <option value="student">Student</option>
+            <option value="teacher">Teacher (demo)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="scheduleDate">Schedule date (demo daily)</label>
+          <input type="date" id="scheduleDate">
+        </div>
+        <button class="primary" id="saveName" type="button">Save name &amp; role</button>
+      </div>
+      <p class="muted" id="currentNameLabel" aria-live="polite"></p>
+      <p class="muted">
+        Tap a slot to book it. Tap your own booking to release it.
+        Booking limit: <strong id="limitLabel">2</strong> active bookings per student.
+      </p>
+
+      <div class="grid-wrap">
+        <table class="grid" id="bookingGrid" aria-label="Station and time slot availability"></table>
+      </div>
+
+      <ul class="legend" aria-label="Booking state legend">
+        <li><span class="swatch avail" aria-hidden="true"></span> Available</li>
+        <li><span class="swatch booked" aria-hidden="true"></span> Booked by another user</li>
+        <li><span class="swatch mine" aria-hidden="true"></span> Booked by me</li>
+      </ul>
+
+      <div class="my-bookings" id="myBookingsBox" aria-live="polite">
+        <h3>My bookings</h3>
+        <div id="myBookingsList"></div>
+      </div>
+
+      <div class="live" id="bookingLive" role="status" aria-live="polite"></div>
+
+      <div style="margin-top:14px;">
+        <button class="ghost danger" id="resetDemoBtn" type="button">Clear local data (demo)</button>
+        <p class="muted">Removes all bookings and STEM Club logs stored in <em>this</em> browser. Clearing browser data can also remove them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARN -->
+  <section class="panel" id="panel-learn">
+    <div class="card">
+      <div class="queue-note">
+        Waiting for a station? Work through this while the queue moves — a few minutes of practice adds up over a term.
+      </div>
+      <div id="quizArea"></div>
+      <div class="quiz-actions">
+        <button class="primary" id="checkQuiz" type="button">Check answers</button>
+        <button class="ghost" id="retryQuiz" type="button">Try again</button>
+      </div>
+      <div class="quiz-result" id="quizResult" aria-live="polite"></div>
+      <div class="live" id="quizLive" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- CLUB -->
+  <section class="panel" id="panel-club">
+    <div class="card">
+      <h2 id="logFormHeading" style="font-size:1.15rem;">Add a demonstration</h2>
+      <div class="form-row">
+        <label for="logTitle">Title <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" id="logTitle" style="width:100%" placeholder="e.g. Charcoal-and-sand water filter" required aria-required="true">
+      </div>
+      <div class="form-row">
+        <label for="logMaterials">Materials used</label>
+        <input type="text" id="logMaterials" style="width:100%" placeholder="e.g. plastic bottle, charcoal, sand, gravel">
+      </div>
+      <div class="form-row">
+        <label for="logCategory">Category</label>
+        <select id="logCategory">
+          <option>Programming</option>
+          <option>Physics</option>
+          <option>Chemistry</option>
+          <option>Biology</option>
+          <option>Electronics</option>
+          <option>Environmental science</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="logNotes">What you observed / taught</label>
+        <textarea id="logNotes" placeholder="What happened, what you explained to younger students, what you'd change next time"></textarea>
+      </div>
+      <div class="quiz-actions">
+        <button class="primary" id="addLog" type="button">Add to log</button>
+        <button class="ghost" id="cancelEdit" type="button" style="display:none;">Cancel edit</button>
+        <button class="ghost" id="exportLogs" type="button">Export logs (JSON)</button>
+      </div>
+      <div class="live" id="logLive" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1.15rem;">Club history</h2>
+      <div class="filter-bar">
+        <div>
+          <label for="filterCategory" style="font-size:.78rem;font-weight:600;color:#1F3A34;display:block;">Filter by category</label>
+          <select id="filterCategory">
+            <option value="">All categories</option>
+            <option>Programming</option>
+            <option>Physics</option>
+            <option>Chemistry</option>
+            <option>Biology</option>
+            <option>Electronics</option>
+            <option>Environmental science</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div id="logList"></div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="panel" id="panel-overview">
+    <div class="card">
+      <h2 style="font-size:1.15rem;">All bookings</h2>
+      <p class="muted">Teacher demo role can cancel any booking.</p>
+      <div id="overviewList"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:1.15rem;">Quick stats</h2>
+      <div id="overviewStats"></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="note">
+  <p><strong>Data storage:</strong> Data is stored locally in this browser only. A shared version across all school computers would require a local network server and database.</p>
+  <p><strong>Roles:</strong> The role selector is a demo mechanism, not secure authentication.</p>
+</footer>
+
+<script src="storage.js"></script>
+<script src="booking.js"></script>
+<script src="quiz.js"></script>
+<script src="club-log.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
