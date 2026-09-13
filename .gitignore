@@ -1,0 +1,14 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# Local secrets if we ever add server-side code
+.env
+.env.local
+
+# Nothing else — this project has no build step
