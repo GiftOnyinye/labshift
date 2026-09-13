@@ -33,6 +33,10 @@
       <div class="notice">
         <strong>Demo role selector.</strong> A production version would require authenticated teacher accounts.
       </div>
+      <div class="notice">
+        <strong>Shared database:</strong> Bookings sync across devices over the internet.
+        The grid needs a network connection to load or write bookings.
+      </div>
       <div class="name-bar">
         <div class="field">
           <label for="studentName">Your name</label>
@@ -76,7 +80,7 @@
 
       <div style="margin-top:14px;">
         <button class="ghost danger" id="resetDemoBtn" type="button">Clear local data (demo)</button>
-        <p class="muted">Removes all bookings and STEM Club logs stored in <em>this</em> browser. Clearing browser data can also remove them.</p>
+        <p class="muted">Removes your saved name, role, quiz score, and STEM Club logs stored in <em>this</em> browser. Bookings stored in the shared database are not affected.</p>
       </div>
     </div>
   </section>
@@ -170,15 +174,16 @@
 </div>
 
 <footer class="note">
-  <p><strong>Data storage:</strong> Data is stored locally in this browser only. A shared version across all school computers would require a local network server and database.</p>
-  <p><strong>Roles:</strong> The role selector is a demo mechanism, not secure authentication.</p>
+  <p><strong>Data storage:</strong> Bookings are stored in a shared Supabase database and sync between devices that are online. Quiz scores and STEM Club logs are stored locally in this browser only.</p>
+  <p><strong>Roles:</strong> The role selector is a demo mechanism, not secure authentication. Anyone can currently select "Teacher."</p>
+  <p><strong>Network:</strong> The booking grid needs internet. Quiz and STEM Club logs work offline.</p>
 </footer>
 
+<script src="supabase-client.js"></script>
 <script src="storage.js"></script>
 <script src="booking.js"></script>
 <script src="quiz.js"></script>
 <script src="club-log.js"></script>
 <script src="app.js"></script>
-  <script src="supabase-client.js"></script>
 </body>
 </html>
