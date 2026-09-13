@@ -1,45 +1,19 @@
-/* LabShift — booking grid, roles, permissions, teacher overview. */
+/* LabShift — booking grid, roles, permissions, teacher overview.
+   Now reads/writes bookings via Supabase instead of localStorage. */
+
 const STATIONS = 8;
 const TIMES = ["8:00","8:30","9:00","9:30","10:00","10:30","11:00","11:30","12:00","12:30","1:00","1:30"];
 const BOOKING_LIMIT = 2;
-const KEY_BOOK = 'labshift_bookings_v2';
 const KEY_NAME = 'labshift_name';
 const KEY_ROLE = 'labshift_role';
 const KEY_DATE = 'labshift_schedule_date';
 
-let bookings = loadBookings();
+let bookings = {};          // keyed by "station-time"
 let myName = Storage.get(KEY_NAME, '');
 let myRole = Storage.get(KEY_ROLE, 'student');
 let scheduleDate = Storage.get(KEY_DATE, new Date().toISOString().slice(0,10));
 
-/* Backward-compatible load: strings are upgraded to structured objects. */
-function loadBookings() {
-  const raw = Storage.get(KEY_BOOK, {});
-  if (!raw || typeof raw !== 'object') return {};
-  const clean = {};
-  Object.keys(raw).forEach(key => {
-    const v = raw[key];
-    if (typeof v === 'string') {
-      clean[key] = { name: v, role: 'student', createdAt: new Date().toISOString() };
-    } else if (v && typeof v === 'object' && typeof v.name === 'string') {
-      clean[key] = {
-        name: v.name,
-        role: v.role === 'teacher' ? 'teacher' : 'student',
-        createdAt: typeof v.createdAt === 'string' ? v.createdAt : new Date().toISOString()
-      };
-    }
-  });
-  return clean;
-}
-
-function persistBookings() {
-  if (!Storage.set(KEY_BOOK, bookings)) {
-    const live = document.getElementById('bookingLive');
-    if (live) { live.textContent = 'Could not save (browser storage unavailable).'; live.className = 'live error'; }
-  }
-}
-
-/* ---- Permission helpers (demo only, not security) ---- */
+/* ---- Permission helpers ---- */
 function isTeacher() { return myRole === 'teacher'; }
 function getMyBookings() {
   return Object.entries(bookings)
@@ -117,7 +91,33 @@ function announceBooking(msg, kind) {
   el.className = 'live' + (kind ? ' ' + kind : '');
 }
 
-function handleSlotClick(key) {
+async function refreshFromServer() {
+  announceBooking('Loading bookings…');
+  const res = await Supa.listBookings(scheduleDate);
+  if (!res.ok) {
+    if (res.offline) {
+      announceBooking('Offline — could not reach the booking server.', 'error');
+    } else {
+      announceBooking('Could not load bookings (status ' + res.status + ').', 'error');
+    }
+    return;
+  }
+  bookings = {};
+  res.rows.forEach(function (row) {
+    const key = row.station + '-' + row.time_slot;
+    bookings[key] = {
+      name: row.name,
+      role: row.role,
+      createdAt: row.created_at
+    };
+  });
+  renderGrid();
+  renderMyBookings();
+  renderOverview();
+  announceBooking('');
+}
+
+async function handleSlotClick(key) {
   if (!myName) { announceBooking('Set your name first, then try again.', 'error'); return; }
   const entry = bookings[key];
   const parts = key.split('-');
@@ -133,9 +133,13 @@ function handleSlotClick(key) {
       ? 'Release Station ' + station + ' at ' + time + '?'
       : 'Cancel ' + entry.name + '\'s booking at Station ' + station + ', ' + time + '?';
     if (!window.confirm(prompt)) { announceBooking('Cancelled — nothing changed.'); return; }
-    delete bookings[key];
-    persistBookings();
-    renderGrid(); renderMyBookings(); renderOverview();
+
+    const res = await Supa.deleteBooking(parseInt(station, 10), time, scheduleDate);
+    if (!res.ok) {
+      announceBooking(res.offline ? 'Offline — could not release.' : 'Release failed (status ' + res.status + ').', 'error');
+      return;
+    }
+    await refreshFromServer();
     announceBooking(entry.name === myName
       ? 'Released Station ' + station + ' at ' + time + '.'
       : 'Cancelled ' + entry.name + '\'s booking at Station ' + station + ', ' + time + '.',
@@ -145,9 +149,26 @@ function handleSlotClick(key) {
 
   const perm = canBook();
   if (!perm.ok) { announceBooking(perm.reason, 'error'); return; }
-  bookings[key] = { name: myName, role: myRole, createdAt: new Date().toISOString() };
-  persistBookings();
-  renderGrid(); renderMyBookings(); renderOverview();
+
+  const res = await Supa.insertBooking({
+    station: parseInt(station, 10),
+    time_slot: time,
+    schedule_date: scheduleDate,
+    name: myName,
+    role: myRole
+  });
+
+  if (!res.ok) {
+    if (res.status === 409) {
+      announceBooking('Someone else just booked that slot. Refreshing…', 'error');
+      await refreshFromServer();
+      return;
+    }
+    announceBooking(res.offline ? 'Offline — could not book.' : 'Booking failed (status ' + res.status + ').', 'error');
+    return;
+  }
+
+  await refreshFromServer();
   announceBooking('Booked Station ' + station + ' at ' + time + ' for ' + myName + '.', 'success');
 }
 
@@ -193,16 +214,20 @@ function renderOverview() {
     }).join('');
 
     listEl.querySelectorAll('[data-cancelkey]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', async function () {
         const key = btn.dataset.cancelkey;
         const entry = bookings[key];
         if (!entry) return;
         if (!isTeacher()) { alert('Only teachers can cancel other users\' bookings in this demo.'); return; }
         const parts = key.split('-');
         if (!window.confirm('Cancel ' + entry.name + '\'s booking at Station ' + parts[0] + ', ' + parts[1] + '?')) return;
-        delete bookings[key];
-        persistBookings();
-        renderGrid(); renderMyBookings(); renderOverview();
+
+        const res = await Supa.deleteBooking(parseInt(parts[0], 10), parts[1], scheduleDate);
+        if (!res.ok) {
+          announceBooking('Cancel failed.', 'error');
+          return;
+        }
+        await refreshFromServer();
       });
     });
   }
@@ -254,19 +279,15 @@ function saveIdentity(input) {
 
   updateNameLabel();
   applyRoleVisibility();
-  renderGrid();
-  renderMyBookings();
-  renderOverview();
+  refreshFromServer();
 
   return { ok: true, message: 'Saved. Signed in as ' + myName + ' (' + myRole + ').' };
 }
 
 function init() {
-  renderGrid();
-  renderMyBookings();
-  renderOverview();
   updateNameLabel();
   applyRoleVisibility();
+  refreshFromServer();
 }
 
 window.LabShiftBooking = {
