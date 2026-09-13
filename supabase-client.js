@@ -2,8 +2,8 @@
    Replaces localStorage with a shared database for bookings.
    Quiz and STEM log remain local (they do not need to be shared). */
 
-const SUPABASE_URL = 'https://uxjvkwywxryrezpsabici.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_5Hu7E4DFMO_crtsProwSew_cnyKCqFG';
+const SUPABASE_URL = 'https://kjglmjumfzxydgkasalf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_FAoQhXUg6uZYsm9-RbJYvw_wLbfKUgF';
 
 /* Minimal fetch wrapper — no SDK, no build step. */
 const Supa = (function () {
@@ -71,5 +71,5 @@ const Supa = (function () {
   };
 })();
 
-/* Expose to other scripts — this line was missing before. */
+/* Expose to other scripts. */
 window.Supa = Supa;
