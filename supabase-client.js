@@ -70,3 +70,6 @@ const Supa = (function () {
     deleteBooking: deleteBooking
   };
 })();
+
+/* Expose to other scripts — this line was missing before. */
+window.Supa = Supa;
