@@ -1,7 +1,7 @@
 /* LabShift — bootstrap: tabs, name/role/date save, reset, init calls.
    Loaded last so it can wire up everything else. */
 (function () {
-  const TEACHER_PASSWORD = 'Beatitude2026+';
+  const TEACHER_PASSWORD = 'Beatitude2025+';
   const KEY_NAME = 'labshift_name';
   const KEY_ROLE = 'labshift_role';
   const KEY_DATE = 'labshift_schedule_date';
